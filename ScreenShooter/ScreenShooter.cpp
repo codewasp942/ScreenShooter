@@ -1,27 +1,50 @@
 ﻿#include <iostream>
 #include <fstream>
 #include <windows.h>
+#include <wchar.h>
+
+HWND hWndDesktop;
+HDC hDCDesktop;
+HDC hDCDesktopCom;
+RECT rectWindow;
+HBITMAP hBitmapCom;
+HBITMAP hBitmapOld;
+BITMAP BitMapData;
+
+bool initShot() {
+	hWndDesktop = GetDesktopWindow();
+	hDCDesktop = GetWindowDC(hWndDesktop);
+	hDCDesktopCom = CreateCompatibleDC(hDCDesktop);
+	GetWindowRect(hWndDesktop, &rectWindow);
+	hBitmapCom = CreateCompatibleBitmap(hDCDesktop, rectWindow.right, rectWindow.bottom);
+	return 1;
+}
+
+void shot() {
+	hBitmapOld=SelectObject(hDCDesktopCom, hBitmapCom);
+	BitBlt(hDCDesktopCom, 0, 0, rectWindow.right, rectWindow.bottom, hWndDesktop, 0, 0, SRCCOPY);
+	SelectObject(hDCDesktopCom, hBitmapOld);
+	GetObject(hBitmapCom, sizeof(BITMAP), BitMapData);
+}
 
 void screen(char* fileName)
 {
-	HWND window = GetDesktopWindow();
-	HDC _dc = GetWindowDC(window);
-	HDC dc = CreateCompatibleDC(0);
+	
+	
 
-	RECT re;
-	GetWindowRect(window, &re);
-	int w = re.right,
-		h = re.bottom;
+	
+	int w = rectWindow.right,
+		h = rectWindow.bottom;
 	void* buf = new char[w * h * 4];
 
-	HBITMAP bm = CreateCompatibleBitmap(_dc, w, h);
-	SelectObject(dc, bm);
+	
+	SelectObject(hDCDesktopCom, hBitmapCom);
 
-	StretchBlt(dc, 0, 0, w, h, _dc, 0, 0, w, h, SRCCOPY);
+	StretchBlt(hDCDesktopCom, 0, 0, w, h, hDCDesktop, 0, 0, w, h, SRCCOPY);
 
-	void* f = CreateFile((LPCWSTR)fileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0);
-
-	GetObject(bm, 84, buf);
+	void* f = CreateFileA(fileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0);
+	 
+	GetObject(hBitmapCom, 84, buf);
 
 	tagBITMAPINFO bi;
 	bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
@@ -32,8 +55,8 @@ void screen(char* fileName)
 	bi.bmiHeader.biCompression = 0;
 	bi.bmiHeader.biSizeImage = 0;
 
-	CreateDIBSection(dc, &bi, DIB_RGB_COLORS, &buf, 0, 0);
-	GetDIBits(dc, bm, 0, h, buf, &bi, DIB_RGB_COLORS);
+	CreateDIBSection(hDCDesktopCom, &bi, DIB_RGB_COLORS, &buf, 0, 0);
+	GetDIBits(hDCDesktopCom, hBitmapCom, 0, h, buf, &bi, DIB_RGB_COLORS);
 
 	BITMAPFILEHEADER bif;
 	bif.bfType = MAKEWORD('B', 'M');
@@ -55,67 +78,14 @@ void screen(char* fileName)
 	WriteFile(f, buf, w * h * 4, &r, NULL);
 
 	CloseHandle(f);
-	DeleteDC(_dc);
-	DeleteDC(dc);
+	DeleteDC(hDCDesktop);
+	DeleteDC(hDCDesktopCom);
 }
 
 
 int main()
 {
-	/*
-    HDC scrDc = GetDC(HWND_DESKTOP);
-    HDC comDc = CreateCompatibleDC(scrDc);
-    int width = GetSystemMetrics(SM_CXSCREEN);
-    int height = GetSystemMetrics(SM_CYSCREEN);
-    
-    HBITMAP ScrBitmap = CreateCompatibleBitmap(comDc, width, height);
-
-	BITMAPINFOHEADER infoHeader;
-	infoHeader.biSize = sizeof(BITMAPINFOHEADER);
-	infoHeader.biHeight = height;
-	infoHeader.biWidth = width;
-	infoHeader.biPlanes = 1;
-	infoHeader.biBitCount = 16;
-	infoHeader.biCompression = BI_RGB;
-	infoHeader.biSizeImage = 0;
-	infoHeader.biXPelsPerMeter = 0;
-	infoHeader.biYPelsPerMeter = 0;
-	infoHeader.biClrUsed = 0;
-	infoHeader.biClrImportant = 0;
-
-	DWORD bmpSize = ((width * infoHeader.biBitCount + 31) / 32) * 4 * height;
-	DWORD sizeFlie = bmpSize + sizeof(BITMAPINFOHEADER) + sizeof(BITMAPFILEHEADER);
-	BITMAPFILEHEADER fileHeader;
-	fileHeader.bfOffBits = sizeof(BITMAPINFOHEADER) + sizeof(BITMAPFILEHEADER);
-	fileHeader.bfSize = sizeFlie;
-	fileHeader.bfType = 0x4D42;
-
-	char* bitmapData = new char[bmpSize];
-	char* imgName = new char[100];
-
-	for (int i = 1;i <= 10;i++) {
-		SelectObject(comDc, ScrBitmap);
-		if (!BitBlt(comDc, 0, 0, width, height, scrDc, 0, 0, SRCCOPY)) {
-			puts("Err:BitBlt err");
-		}
-		memset(bitmapData, 0, bmpSize);
-
-		GetDIBits(comDc, ScrBitmap, 0, height, bitmapData, (BITMAPINFO*)&infoHeader, DIB_RGB_COLORS);
-		
-		memset(imgName, 0, sizeof(imgName));
-		sprintf_s(imgName, 100, "%d.bmp", i);
-		std::ofstream fileStream;
-		fileStream.open(imgName, std::ios_base::binary);
-		fileStream.write((char*)&fileHeader, sizeof(BITMAPFILEHEADER));
-		fileStream.write((char*)&infoHeader, sizeof(BITMAPINFOHEADER));
-		fileStream.write(bitmapData, bmpSize);
-		fileStream.close();
-
-		Sleep(1000);
-	}
-
-    ReleaseDC(HWND_DESKTOP,scrDc);
-    ReleaseDC(HWND_DESKTOP,comDc);
-	*/
-	screen((char*)"111.bmp");
+	std::cout << sizeof(BITMAP) << std::endl;
+	initShot();
+	shot();
 }
