@@ -10,8 +10,18 @@ RECT rectWindow;
 HBITMAP hBitmapCom;
 HBITMAP hBitmapOld;
 BITMAP BitMapData;
+BITMAPINFOHEADER BmpInfoHead;
 
 bool initShot() {
+	BmpInfoHead.biBitCount = 24;
+	BmpInfoHead.biClrImportant = 0;
+	BmpInfoHead.biCompression = BI_RGB;
+	BmpInfoHead.biHeight = bit.bmHeight;
+	BmpInfoHead.biPlanes = 1;
+	BmpInfoHead.biSize = sizeof(BITMAPINFOHEADER);
+	BmpInfoHead.biWidth = bit.bmWidth;
+	BmpInfoHead.biXPelsPerMeter = 0;
+	BmpInfoHead.biYPelsPerMeter = 0;
 	hWndDesktop = GetDesktopWindow();
 	hDCDesktop = GetWindowDC(hWndDesktop);
 	hDCDesktopCom = CreateCompatibleDC(hDCDesktop);
@@ -24,7 +34,11 @@ void shot() {
 	hBitmapOld=SelectObject(hDCDesktopCom, hBitmapCom);
 	BitBlt(hDCDesktopCom, 0, 0, rectWindow.right, rectWindow.bottom, hWndDesktop, 0, 0, SRCCOPY);
 	SelectObject(hDCDesktopCom, hBitmapOld);
-	GetObject(hBitmapCom, sizeof(BITMAP), BitMapData);
+	GetObject(hBitmapCom, sizeof(BITMAP), &BitMapData);
+	DWORD iSizeBmp = BitMapData.bmWidthBytes * BitMapData.bmHeight;	
+	LPSTR lpData = (LPSTR)GlobalAlloc(GPTR, iSizeBmp);
+	BmpInfoHead.biSizeImage = iSizeBmp
+	GetDIBits(hDCDesktop, hBitmapCom, 0, BmpInfoHead.biHeight, lpData, (BITMAPINFO*)&BmpInfoHead, DIB_RGB_COLORS); ;
 }
 
 void screen(char* fileName)
