@@ -1,105 +1,94 @@
-﻿#include <iostream>
-#include <fstream>
+﻿#include <cstdio>
+#include <iostream>
+#include <cstdlib>
 #include <windows.h>
-#include <wchar.h>
+#include <ctime>
+#include <direct.h>	//only for Visual C++ , you can replace it by system("mkdir ...");
 
-HWND hWndDesktop;
-HDC hDCDesktop;
-HDC hDCDesktopCom;
-RECT rectWindow;
-HBITMAP hBitmapCom;
-HBITMAP hBitmapOld;
-BITMAP BitMapData;
-BITMAPINFOHEADER BmpInfoHead;
+int main(int argc, const char** argv) {
 
-bool initShot() {
-	BmpInfoHead.biBitCount = 24;
-	BmpInfoHead.biClrImportant = 0;
-	BmpInfoHead.biCompression = BI_RGB;
-	BmpInfoHead.biHeight = bit.bmHeight;
-	BmpInfoHead.biPlanes = 1;
-	BmpInfoHead.biSize = sizeof(BITMAPINFOHEADER);
-	BmpInfoHead.biWidth = bit.bmWidth;
-	BmpInfoHead.biXPelsPerMeter = 0;
-	BmpInfoHead.biYPelsPerMeter = 0;
-	hWndDesktop = GetDesktopWindow();
-	hDCDesktop = GetWindowDC(hWndDesktop);
-	hDCDesktopCom = CreateCompatibleDC(hDCDesktop);
-	GetWindowRect(hWndDesktop, &rectWindow);
-	hBitmapCom = CreateCompatibleBitmap(hDCDesktop, rectWindow.right, rectWindow.bottom);
-	return 1;
-}
+	HDC 	hScrDc = CreateDC(TEXT("DISPLAY"), 0, 0, 0);
+	HDC 	hComDC = CreateCompatibleDC(hScrDc);
+	int 	Wide = GetDeviceCaps(hScrDc, HORZRES);
+	int 	High = GetDeviceCaps(hScrDc, VERTRES);
+	HBITMAP hComBmp = CreateCompatibleBitmap(hScrDc, Wide, High);
+	SelectObject(hComDC, hComBmp);
 
-void shot() {
-	hBitmapOld=SelectObject(hDCDesktopCom, hBitmapCom);
-	BitBlt(hDCDesktopCom, 0, 0, rectWindow.right, rectWindow.bottom, hWndDesktop, 0, 0, SRCCOPY);
-	SelectObject(hDCDesktopCom, hBitmapOld);
-	GetObject(hBitmapCom, sizeof(BITMAP), &BitMapData);
-	DWORD iSizeBmp = BitMapData.bmWidthBytes * BitMapData.bmHeight;	
-	LPSTR lpData = (LPSTR)GlobalAlloc(GPTR, iSizeBmp);
-	BmpInfoHead.biSizeImage = iSizeBmp
-	GetDIBits(hDCDesktop, hBitmapCom, 0, BmpInfoHead.biHeight, lpData, (BITMAPINFO*)&BmpInfoHead, DIB_RGB_COLORS); ;
-}
+	BITMAP 	Bmp;
+	DWORD 	SizeBmp;
+	HGLOBAL hData;
+	LPSTR 	lpData;
 
-void screen(char* fileName)
-{
+	BITMAPFILEHEADER BmpFileHead;
+	BITMAPINFOHEADER BmpInfoHead;
+
+	BitBlt(hComDC, 0, 0, Wide, High, hScrDc, 0, 0, SRCCOPY);
+	GetObject(hComBmp, sizeof(Bmp), &Bmp);
+	SizeBmp = Bmp.bmWidthBytes * Bmp.bmHeight;
+	hData = GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, SizeBmp);
+	if (hData == NULL)return -1;
+	lpData = (LPSTR)GlobalLock(hData);
+
+	time_t SecTime = time(NULL);
+	tm localTime;
+	localtime_s(&localTime,&SecTime);
+
+	char lpFileName[100],lpDateFix[30];
+	sprintf_s(lpDateFix, "%d_%d_%d//%d_%d_%d", localTime.tm_year,
+		localTime.tm_mon, localTime.tm_mday, localTime.tm_hour,
+		localTime.tm_min, localTime.tm_sec);
+
+	int tim = clock();
 	
-	
+	for (int i = 1;i <= 100;i++) {
 
-	
-	int w = rectWindow.right,
-		h = rectWindow.bottom;
-	void* buf = new char[w * h * 4];
+		//std::cout << i << std::endl;
 
-	
-	SelectObject(hDCDesktopCom, hBitmapCom);
+		memset(lpFileName, '\0', sizeof(lpFileName));
+		sprintf_s(lpFileName, ".//%s//%d_shot.bmp", lpDateFix, i);
 
-	StretchBlt(hDCDesktopCom, 0, 0, w, h, hDCDesktop, 0, 0, w, h, SRCCOPY);
+		HANDLE 	hFileBmp;
+		DWORD	WriteNum;
+		if ((hFileBmp = CreateFileA(lpFileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+			std::cout << "ERR!" << std::endl;
+			return -1;
+		}
 
-	void* f = CreateFileA(fileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0);
-	 
-	GetObject(hBitmapCom, 84, buf);
+		BitBlt(hComDC, 0, 0, Wide, High, hScrDc, 0, 0, SRCCOPY);
+		GetObject(hComBmp, sizeof(Bmp), &Bmp);
 
-	tagBITMAPINFO bi;
-	bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
-	bi.bmiHeader.biWidth = w;
-	bi.bmiHeader.biHeight = h;
-	bi.bmiHeader.biPlanes = 1;
-	bi.bmiHeader.biBitCount = 32;
-	bi.bmiHeader.biCompression = 0;
-	bi.bmiHeader.biSizeImage = 0;
+		BmpFileHead.bfType = MAKEWORD('B', 'M');
+		BmpFileHead.bfReserved1 = 0;
+		BmpFileHead.bfReserved2 = 0;
+		BmpFileHead.bfSize = sizeof(BmpFileHead) + SizeBmp;
+		BmpFileHead.bfOffBits = sizeof(BmpFileHead);
 
-	CreateDIBSection(hDCDesktopCom, &bi, DIB_RGB_COLORS, &buf, 0, 0);
-	GetDIBits(hDCDesktopCom, hBitmapCom, 0, h, buf, &bi, DIB_RGB_COLORS);
+		BmpInfoHead.biSize = sizeof(BITMAPINFOHEADER);
+		BmpInfoHead.biWidth = Bmp.bmWidth;
+		BmpInfoHead.biHeight = Bmp.bmHeight;
+		BmpInfoHead.biPlanes = 1;
+		BmpInfoHead.biBitCount = Bmp.bmBitsPixel;
+		BmpInfoHead.biCompression = 0;
+		BmpInfoHead.biSizeImage = 0;
+		BmpInfoHead.biXPelsPerMeter = 0;
+		BmpInfoHead.biYPelsPerMeter = 0;
+		BmpInfoHead.biClrUsed = 0;
+		BmpInfoHead.biClrImportant = 0;
 
-	BITMAPFILEHEADER bif;
-	bif.bfType = MAKEWORD('B', 'M');
-	bif.bfSize = w * h * 4 + 54;
-	bif.bfOffBits = 54;
+		// GetDIBits(hScrDc,hComBmp,0,BmpInfoHead.biHeight,lpData,(BITMAPINFO*)&BmpInfoHead,DIB_RGB_COLORS);
+		GetDIBits(hScrDc, hComBmp, 0, Bmp.bmHeight, (LPVOID)lpData, (BITMAPINFO*)&BmpInfoHead, DIB_RGB_COLORS);
 
-	BITMAPINFOHEADER bii;
-	bii.biSize = 40;
-	bii.biWidth = w;
-	bii.biHeight = h;
-	bii.biPlanes = 1;
-	bii.biBitCount = 32;
-	bii.biCompression = 0;
-	bii.biSizeImage = w * h * 4;
+		WriteFile(hFileBmp, &BmpFileHead, sizeof(BmpFileHead), &WriteNum, 0);
+		WriteFile(hFileBmp, &BmpInfoHead, sizeof(BmpInfoHead), &WriteNum, 0);
+		WriteFile(hFileBmp, lpData, SizeBmp, &WriteNum, 0);
 
-	DWORD r;
-	WriteFile(f, &bif, sizeof(bif), &r, NULL);
-	WriteFile(f, &bii, sizeof(bii), &r, NULL);
-	WriteFile(f, buf, w * h * 4, &r, NULL);
+		CloseHandle(hFileBmp);
+		//
+	}
 
-	CloseHandle(f);
-	DeleteDC(hDCDesktop);
-	DeleteDC(hDCDesktopCom);
-}
+	GlobalFree(hData);
+	std::cout << clock() - tim << std::endl;
+	system("pause");
 
-
-int main()
-{
-	std::cout << sizeof(BITMAP) << std::endl;
-	initShot();
-	shot();
+	return 0;
 }
