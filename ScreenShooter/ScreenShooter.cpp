@@ -125,11 +125,9 @@ int main(int argc, const char** argv) {
 	initShot(ShtArg);
 	DWORD idp;
 	HANDLE hThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)Ctrl, (LPVOID)&ShtArg, 0, &idp);
-	while (1) {
-		while (!ShtArg.isShot){}
-		for (int i = 1;i <= ShtArg.MaxShotCount && ShtArg.isShot;i++) {
-			ShotScr(ShtArg, i);
-		}
+	while (!ShtArg.isShot){}
+	for (int i = 1;i <= ShtArg.MaxShotCount && ShtArg.isShot;i++) {
+		ShotScr(ShtArg, i);
 	}
 	GlobalFree(ShtArg.hData);
 	system("pause");
