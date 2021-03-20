@@ -8,7 +8,7 @@
 
 struct ShotArg
 {
-	bool		isShot=0;
+	bool		isShot=1;
 	int			MaxShotCount=10000;
 	HDC			hScrDC, hComDC;
 	int			High, Wide;
@@ -24,7 +24,7 @@ struct ShotArg
 
 int initShot(ShotArg& ShotArgs) {
 
-	ShotArgs.isShot = 0;
+	ShotArgs.isShot = 1;
 	ShotArgs.hScrDC = CreateDC(TEXT("DISPLAY"), 0, 0, 0);
 	ShotArgs.hComDC = CreateCompatibleDC(ShotArgs.hScrDC);
 	ShotArgs.Wide = GetDeviceCaps(ShotArgs.hScrDC, HORZRES);
@@ -108,12 +108,13 @@ DWORD Ctrl(LPVOID args) {
 	ShotArg* pArg = (ShotArg*)args;
 	std::string Cmd;
 	while (1) {
+		system("cls");
+		puts("--- ScreenShooter ---");
+		puts("help for help , end for end");
+		printf(":");
 		std::cin >> Cmd;
 		if (Cmd == "end") {
 			pArg->isShot = 0;
-		}
-		else if (Cmd == "start") {
-			pArg->isShot = 1;
 		}
 	}
 	pArg->isShot = 0;
