@@ -29,23 +29,28 @@ int main(int argc, const char** argv) {
 	if (hData == NULL)return -1;
 	lpData = (LPSTR)GlobalLock(hData);
 
-	time_t SecTime = time(NULL);
+	time_t SecTime;
 	tm localTime;
+	char lpFileName[100], lpDateFix[30];
+	
+	SecTime = time(NULL);
 	localtime_s(&localTime,&SecTime);
 
-	char lpFileName[100],lpDateFix[30];
-	sprintf_s(lpDateFix, "%d_%d_%d//%d_%d_%d", localTime.tm_year,
-		localTime.tm_mon, localTime.tm_mday, localTime.tm_hour,
+	sprintf_s(lpDateFix, "%d_%d_%d", localTime.tm_year+1900,
+		localTime.tm_mon, localTime.tm_mday);
+	_mkdir((const char*)lpDateFix);
+	_chdir((const char*)lpDateFix);
+	sprintf_s(lpDateFix, "%d_%d_%d",localTime.tm_hour,
 		localTime.tm_min, localTime.tm_sec);
-
-	int tim = clock();
+	_mkdir((const char*)lpDateFix);
+	_chdir((const char*)lpDateFix);
 	
 	for (int i = 1;i <= 100;i++) {
 
 		//std::cout << i << std::endl;
 
 		memset(lpFileName, '\0', sizeof(lpFileName));
-		sprintf_s(lpFileName, ".//%s//%d_shot.bmp", lpDateFix, i);
+		sprintf_s(lpFileName, "%d_shot.bmp", i);
 
 		HANDLE 	hFileBmp;
 		DWORD	WriteNum;
@@ -87,8 +92,6 @@ int main(int argc, const char** argv) {
 	}
 
 	GlobalFree(hData);
-	std::cout << clock() - tim << std::endl;
-	system("pause");
 
 	return 0;
 }
