@@ -110,7 +110,7 @@ DWORD Ctrl(LPVOID args) {
 	while (1) {
 		system("cls");
 		puts("--- ScreenShooter ---");
-		puts("help for help , end for end");
+		puts("enter end to quit.");
 		printf(":");
 		std::cin >> Cmd;
 		if (Cmd == "end") {
