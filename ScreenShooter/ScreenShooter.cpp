@@ -122,6 +122,7 @@ DWORD Ctrl(LPVOID args) {
 }
 
 int main(int argc, const char** argv) {
+
 	ShotArg ShtArg;
 	initShot(ShtArg);
 	DWORD idp;
@@ -131,6 +132,7 @@ int main(int argc, const char** argv) {
 		ShotScr(ShtArg, i);
 	}
 	GlobalFree(ShtArg.hData);
+	CloseHandle(hThread);
 	system("pause");
 	return 0;
 }
